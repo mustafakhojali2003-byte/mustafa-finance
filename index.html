@@ -48,6 +48,13 @@ input,select,button{font-family:inherit}
 
 /* APP */
 #appScreen{display:none}
+.tab-nav{display:flex;background:var(--s1);border-bottom:1px solid var(--border);padding:0 16px;overflow-x:auto;-webkit-overflow-scrolling:touch;position:sticky;top:56px;z-index:99}
+.tab-nav::-webkit-scrollbar{display:none}
+.tab-btn{padding:11px 16px;font-size:13px;font-weight:600;color:var(--muted);border:none;background:transparent;cursor:pointer;border-bottom:2px solid transparent;white-space:nowrap;transition:all .2s;flex-shrink:0}
+.tab-btn:hover{color:var(--muted2)}
+.tab-btn.active{color:var(--accent);border-bottom-color:var(--accent)}
+.tab-page{display:none}
+.tab-page.active{display:block}
 .topbar{background:var(--s1);border-bottom:1px solid var(--border);padding:10px 18px;display:flex;align-items:center;gap:9px;flex-wrap:wrap;position:sticky;top:0;z-index:100}
 .brand{font-size:15px;font-weight:700;color:var(--accent);white-space:nowrap}
 .tb-sel{background:var(--s2);border:1px solid var(--border2);border-radius:8px;color:var(--text);padding:7px 10px;font-size:13px;outline:none;cursor:pointer;min-width:130px;flex:1}
@@ -261,6 +268,12 @@ input,select,button{font-family:inherit}
     <button class="blang" id="bLang" onclick="togLang()">EN</button>
     <button class="bout" onclick="doLogout()">خروج</button>
     <span class="sdot" id="sdot"></span>
+  </div>
+  <div class="tab-nav" id="tabNav">
+    <button class="tab-btn active" onclick="switchTab('overview')" id="tab-overview" data-ar="نظرة عامة" data-en="Overview">نظرة عامة</button>
+    <button class="tab-btn" onclick="switchTab('income')" id="tab-income" data-ar="مصادر الدخل" data-en="Income">مصادر الدخل</button>
+    <button class="tab-btn" onclick="switchTab('monthly')" id="tab-monthly" data-ar="التحصيل الشهري" data-en="Monthly">التحصيل الشهري</button>
+    <button class="tab-btn" onclick="switchTab('balance')" id="tab-balance" data-ar="الرصيد والمصاريف" data-en="Balance">الرصيد والمصاريف</button>
   </div>
   <div class="main" id="mc"></div>
 </div>
@@ -527,6 +540,10 @@ function applyLang(){
   // topbar buttons
   var logoutBtn=document.getElementById('btnLogout')||document.querySelector('.bout');
   if(logoutBtn) logoutBtn.textContent=isAr?'خروج':'Logout';
+  // translate tab buttons
+  document.querySelectorAll('.tab-btn').forEach(function(b){
+    b.textContent=isAr?(b.getAttribute('data-ar')||b.textContent):(b.getAttribute('data-en')||b.textContent);
+  });
 }
 
 // ── PROFILES ──────────────────────────────────────────────────────
@@ -584,6 +601,16 @@ function fm(n){return Math.round(n).toLocaleString('en-US');}
 function td(){var d=new Date();return d.getDate()+'/'+(d.getMonth()+1);}
 
 // ── RENDER ────────────────────────────────────────────────────────
+var currentTab='overview';
+function switchTab(tab){
+  currentTab=tab;
+  document.querySelectorAll('.tab-btn').forEach(function(b){
+    b.classList.toggle('active', b.id==='tab-'+tab);
+  });
+  document.querySelectorAll('.tab-page').forEach(function(p){
+    p.classList.toggle('active', p.id==='page-'+tab);
+  });
+}
 function render(){
   var p=profiles[current];
   if(!p) return;
@@ -618,6 +645,8 @@ function render(){
   }).join('');
 
   document.getElementById('mc').innerHTML=
+  // ── PAGE: OVERVIEW ──────────────────────────────────────────
+  '<div class="tab-page'+(currentTab==='overview'?' active':'')+'" id="page-overview">'+
   '<div class="hero">'+
     '<div class="hi"><div class="hn" style="color:var(--accent)">'+fm(+p.currentBalance||0)+'</div><div class="hl">'+t('curBal')+'</div></div>'+
     '<div class="hi"><div class="hn" style="color:var(--green)">'+fm(c.totRec)+'</div><div class="hl">'+t('totRec')+'</div></div>'+
@@ -658,6 +687,9 @@ function render(){
     '</div>'+
   '</div>'+
   '</div>'+
+  '</div>'+ // end page-overview
+  // ── PAGE: INCOME ────────────────────────────────────────────
+  '<div class="tab-page'+(currentTab==='income'?' active':'')+'" id="page-income">'+
   '<div class="card">'+
     '<div class="stit"><span class="sbar" style="background:var(--yellow)"></span>'+t('incSec')+'</div>'+
     '<table class="tbl"><thead><tr><th>'+t('cSrc')+'</th><th style="text-align:center">'+t('cTog')+'</th><th>'+t('cAmt')+'</th><th></th></tr></thead><tbody>'+srcR+'</tbody></table>'+
@@ -676,6 +708,9 @@ function render(){
       '<div class="tr trn"><span class="tl">'+t('netLbl')+'</span><span class="tv">'+fm(c.net)+' QAR</span></div>'+
     '</div>'+
   '</div>'+
+  '</div>'+ // end page-monthly
+  // ── PAGE: BALANCE ───────────────────────────────────────────
+  '<div class="tab-page'+(currentTab==='balance'?' active':'')+'" id="page-balance">'+
   '<div class="card">'+
     '<div class="stit"><span class="sbar" style="background:var(--green)"></span>'+t('balSec')+'</div>'+
     '<div style="display:flex;align-items:center;gap:9px;margin-bottom:15px;flex-wrap:wrap">'+
@@ -703,10 +738,14 @@ function render(){
     '<div class="ll">'+expL+'</div>'+
     '<div style="display:flex;justify-content:flex-end;margin-top:8px"><button class="bxs br" onclick="clrExp()">'+t('clrBtn')+'</button></div>'+
   '</div>'+
+  '</div>'+ // end page-income
+  // ── PAGE: MONTHLY ───────────────────────────────────────────
+  '<div class="tab-page'+(currentTab==='monthly'?' active':'')+'" id="page-monthly">'+
   '<div class="card" id="mthCard">'+
     '<div class="stit"><span class="sbar" style="background:var(--purple)"></span>'+t('mthSec')+'</div>'+
     buildMonthlyHTML(p,c)+
   '</div>'+
+  '</div>'+ // end page-balance
   '<button class="exbtn" onclick="exportXL()">'+t('exbtn')+'</button>';
 }
 
@@ -806,7 +845,7 @@ function buildMonthlyHTML(p,c){
     '<div class="mcol-stat"><div class="mcol-stat-n" style="color:var(--yellow)">'+fm(goalLeft)+'</div><div class="mcol-stat-l">'+t('mthGoalLeft')+' QAR</div></div>'+
   '</div>'+
   '<div class="mcol-form">'+
-    '<select class="ltp" id="mSrc" style="flex:2;min-width:120px">'+srcOpts+'</select>'+
+    '<select class="ltp" id="mSrc" style="flex:2;min-width:120px" onchange="fillMthAmt()">'+srcOpts+'</select>'+
     '<input class="la" id="mAmt" type="number" placeholder="'+t('mthAmtLbl')+'" style="width:110px">'+
     '<select class="ltp" id="mMon" style="min-width:120px">'+monthOpts+'</select>'+
     '<input class="li" id="mNote" placeholder="'+t('mthNote')+'" style="flex:2">'+
@@ -818,6 +857,17 @@ function buildMonthlyHTML(p,c){
   '</div>';
 }
 
+function fillMthAmt(){
+  var sel=document.getElementById('mSrc');
+  var srcName=sel.value;
+  if(!srcName) return;
+  var p=profiles[current];
+  var src=(p.sources||[]).find(function(s){return s.name===srcName;});
+  if(src){
+    var amtEl=document.getElementById('mAmt');
+    if(amtEl) amtEl.value=src.amount;
+  }
+}
 function addCol(){
   var src=document.getElementById('mSrc').value;
   var amt=parseFloat(document.getElementById('mAmt').value);
