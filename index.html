@@ -212,21 +212,21 @@ input,select,button{font-family:inherit}
     </div>
     <div id="authErr" class="auth-err"></div>
     <div id="nameF" class="auth-field" style="display:none">
-      <label>الاسم الكامل</label>
+      <label id="nameLbl">الاسم الكامل</label>
       <input class="auth-in" id="nameIn" type="text" placeholder="مصطفى معتصم">
     </div>
     <div class="auth-field">
-      <label>البريد الإلكتروني</label>
+      <label id="emailLbl">البريد الإلكتروني</label>
       <input class="auth-in" id="emailIn" type="email" placeholder="example@gmail.com">
     </div>
     <div class="auth-field">
-      <label>كلمة المرور (6 أحرف على الأقل)</label>
+      <label id="passLbl">كلمة المرور (6 أحرف على الأقل)</label>
       <input class="auth-in" id="passIn" type="password" placeholder="••••••••">
     </div>
     <button class="auth-btn" id="authBtn" onclick="doAuth()">دخول</button>
     <div class="auth-note">
       <span>🔒</span>
-      <span>بياناتك محفوظة على Firebase — لا أحد يراها غيرك</span>
+      <span id="authNote">بياناتك محفوظة على Firebase — لا أحد يراها غيرك</span>
     </div>
   </div>
 </div>
@@ -314,6 +314,7 @@ var initTimeout = setTimeout(function(){
   document.getElementById('authScreen').style.display='flex';
 }, 6000);
 
+applyLang();
 auth.onAuthStateChanged(function(user){
   clearTimeout(initTimeout);
   if(user){
@@ -350,7 +351,8 @@ function setTab(m){
   document.getElementById('tabL').className='auth-tab'+(m==='login'?' act':'');
   document.getElementById('tabS').className='auth-tab'+(m==='signup'?' act':'');
   document.getElementById('nameF').style.display=m==='signup'?'block':'none';
-  document.getElementById('authBtn').textContent=m==='login'?'دخول':'إنشاء الحساب';
+  var isAr=lang==='ar';
+  document.getElementById('authBtn').textContent=m==='login'?(isAr?'دخول':'Login'):(isAr?'إنشاء الحساب':'Create Account');
   document.getElementById('authErr').style.display='none';
 }
 function showErr(msg){
@@ -421,22 +423,47 @@ function save(){
 function togLang(){
   lang=lang==='ar'?'en':'ar';
   localStorage.setItem('mf_lang',lang);
+  applyLang();
+  render();
+}
+function applyLang(){
+  var isAr=lang==='ar';
   var r=document.getElementById('htmlRoot');
-  r.lang=lang; r.dir=lang==='ar'?'rtl':'ltr';
-  // update all lang buttons
+  r.lang=lang; r.dir=isAr?'rtl':'ltr';
+  // lang buttons
   ['bLang','authLangBtn'].forEach(function(id){
     var b=document.getElementById(id);
-    if(b) b.textContent=t('langBtn');
+    if(b) b.textContent=isAr?'EN':'عربي';
   });
-  // update auth screen texts
-  var sub=document.getElementById('authSubP');
-  if(sub) sub.textContent=lang==='ar'?'لوحة التحكم المالي الشخصية':'Personal Finance Dashboard';
-  var tL=document.getElementById('tabL'),tS=document.getElementById('tabS');
-  if(tL) tL.textContent=lang==='ar'?'تسجيل الدخول':'Login';
-  if(tS) tS.textContent=lang==='ar'?'إنشاء حساب':'Sign Up';
-  var ab=document.getElementById('authBtn');
-  if(ab) ab.textContent=authMode==='login'?(lang==='ar'?'دخول':'Login'):(lang==='ar'?'إنشاء الحساب':'Create Account');
-  render();
+  // auth screen
+  var map={
+    authSubP: isAr?'لوحة التحكم المالي الشخصية':'Personal Finance Dashboard',
+    tabL: isAr?'تسجيل الدخول':'Login',
+    tabS: isAr?'إنشاء حساب':'Sign Up',
+    nameLbl: isAr?'الاسم الكامل':'Full Name',
+    emailLbl: isAr?'البريد الإلكتروني':'Email Address',
+    passLbl: isAr?'كلمة المرور (6 أحرف على الأقل)':'Password (min 6 characters)',
+    authNote: isAr?'بياناتك محفوظة على Firebase — لا أحد يراها غيرك':'Your data is private on Firebase — no one else can see it',
+    authBtn: authMode==='login'?(isAr?'دخول':'Login'):(isAr?'إنشاء الحساب':'Create Account')
+  };
+  Object.keys(map).forEach(function(id){
+    var el=document.getElementById(id);
+    if(el) el.textContent=map[id];
+  });
+  // placeholders
+  var pmap={
+    nameIn: isAr?'مصطفى معتصم':'Your full name',
+    emailIn: 'example@gmail.com',
+    passIn: '••••••••',
+    newProfIn: isAr?'حساب جديد...':'New account...'
+  };
+  Object.keys(pmap).forEach(function(id){
+    var el=document.getElementById(id);
+    if(el) el.placeholder=pmap[id];
+  });
+  // topbar buttons
+  var logoutBtn=document.getElementById('btnLogout')||document.querySelector('.bout');
+  if(logoutBtn) logoutBtn.textContent=isAr?'خروج':'Logout';
 }
 
 // ── PROFILES ──────────────────────────────────────────────────────
