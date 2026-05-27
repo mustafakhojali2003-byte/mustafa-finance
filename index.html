@@ -627,7 +627,7 @@ function render(){
         '<input class="ef efn" style="width:140px" value="'+es(s.name)+'" onchange="setSrcName('+i+',this.value)">'+
       '</div></td>'+
       '<td style="text-align:center"><label class="tgl"><input type="checkbox"'+(s.active?' checked':'')+' onchange="togSrc('+i+',this.checked)"><span class="tsl"></span></label></td>'+
-      '<td><input class="ef efsm" type="number" value="'+s.amount+'"'+(s.active?'':' style="color:var(--muted)"')+' onchange="setSrcAmt('+i+',this.value)"> QAR</td>'+
+      '<td><input class="ef efsm" type="number" value="'+s.amount+'"'+(s.active?'':' style="color:var(--muted)"')+' onblur="setSrcAmt('+i+',this.value)"> QAR</td>'+
       '<td><button class="bxs br" style="padding:4px 9px;font-size:11px" onclick="delSrc('+i+')">✕</button></td>'+
     '</tr>';
   }).join('');
@@ -660,7 +660,7 @@ function render(){
       '<span class="gl">'+t('goalNm')+'</span>'+
       '<input class="ef efn" style="width:100%" value="'+es(p.goalName)+'" onchange="setGoalName(this.value)">'+
       '<span class="gl">'+t('goalVl')+'</span>'+
-      '<input class="ef" style="width:100%" type="number" value="'+p.goalValue+'" oninput="setGoalVal(this.value)">'+
+      '<input class="ef" style="width:100%" type="number" value="'+p.goalValue+'" onblur="setGoalVal(this.value)" onkeydown="if(event.key==='Enter')this.blur()">'+
     '</div>'+
     '<div class="rg">'+
       '<div class="rb"><div class="rn" style="color:var(--accent)">'+(c.net>0?fm(c.months):'∞')+'</div><div class="ru">'+t('mo')+'</div></div>'+
@@ -704,7 +704,7 @@ function render(){
     '</div>'+
     '<div class="tot">'+
       '<div class="tr"><span class="tl">'+t('totInc')+'</span><span class="tv" style="color:var(--blue)">'+fm(c.gross)+' QAR</span></div>'+
-      '<div class="tr" style="color:var(--muted2)"><span class="tl">'+t('fixExp')+'</span><span class="tv">− <input class="ef efsm" type="number" value="'+(p.fixedExp||0)+'" oninput="setFixExp(this.value)" style="width:75px"> QAR</span></div>'+
+      '<div class="tr" style="color:var(--muted2)"><span class="tl">'+t('fixExp')+'</span><span class="tv">− <input class="ef efsm" type="number" value="'+(p.fixedExp||0)+'" onblur="setFixExp(this.value)" onkeydown="if(event.key==='Enter')this.blur()" style="width:75px"> QAR</span></div>'+
       '<div class="tr trn"><span class="tl">'+t('netLbl')+'</span><span class="tv">'+fm(c.net)+' QAR</span></div>'+
     '</div>'+
   '</div>'+
@@ -715,7 +715,7 @@ function render(){
     '<div class="stit"><span class="sbar" style="background:var(--green)"></span>'+t('balSec')+'</div>'+
     '<div style="display:flex;align-items:center;gap:9px;margin-bottom:15px;flex-wrap:wrap">'+
       '<span style="font-size:12px;color:var(--muted2)">'+t('curBal')+'</span>'+
-      '<input class="ef" type="number" value="'+(p.currentBalance||0)+'" style="width:140px" oninput="setCurBal(this.value)">'+
+      '<input class="ef" type="number" value="'+(p.currentBalance||0)+'" style="width:140px" onblur="setCurBal(this.value)" onkeydown="if(event.key==='Enter')this.blur()">'+
     '</div>'+
     '<div class="stit" style="margin-bottom:9px"><span class="sbar" style="background:var(--green)"></span>'+t('recSec')+'</div>'+
     '<div class="lib">'+
