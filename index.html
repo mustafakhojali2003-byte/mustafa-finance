@@ -4,10 +4,6 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Mustafa Finance</title>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
@@ -278,6 +274,10 @@ input,select,button{font-family:inherit}
   <div class="main" id="mc"></div>
 </div>
 
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 <script>
 // ── FIREBASE INIT ─────────────────────────────────────────────────
 firebase.initializeApp({
@@ -353,10 +353,22 @@ var profiles={},current='main',currentUser=null,saveTimer=null;
 
 // ── FIREBASE AUTH ─────────────────────────────────────────────────
 // Timeout fallback — if Firebase takes too long show auth screen
+// Show auth screen if Firebase takes too long
 var initTimeout = setTimeout(function(){
   document.getElementById('loadingScreen').style.display='none';
   document.getElementById('authScreen').style.display='flex';
-}, 6000);
+}, 4000);
+
+// Also show auth screen if page is fully loaded but Firebase hasn't responded
+window.addEventListener('load', function(){
+  setTimeout(function(){
+    var ls = document.getElementById('loadingScreen');
+    if(ls && ls.style.display !== 'none'){
+      ls.style.display='none';
+      document.getElementById('authScreen').style.display='flex';
+    }
+  }, 2000);
+});
 
 applyLang();
 auth.onAuthStateChanged(function(user){
@@ -932,5 +944,6 @@ function exportXL(){
   XLSX.writeFile(wb,'mustafa_finance_'+new Date().toISOString().slice(0,10)+'.xlsx');
 }
 </script>
+
 </body>
 </html>
