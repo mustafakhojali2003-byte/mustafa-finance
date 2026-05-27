@@ -301,14 +301,8 @@ var lang=localStorage.getItem('mf_lang')||'ar';
 function t(k){return(TX[lang]||TX.ar)[k]||k;}
 
 // ── DEFAULTS ──────────────────────────────────────────────────────
-var DEF={main:{name:"الحساب الرئيسي",goalName:"شراء شقة استثمارية",goalValue:1000000,fixedExp:400,currentBalance:680,
-  sources:[
-    {name:"الراتب الوظيفي",icon:"💼",active:true,amount:1600},
-    {name:"سيارة 1 — لانسر",icon:"🚗",active:true,amount:900},
-    {name:"سيارة 2",icon:"🚗",active:false,amount:1000},
-    {name:"سيارة 3",icon:"🚗",active:false,amount:1000},
-    {name:"مشروع الملابس",icon:"👗",active:false,amount:1500}
-  ],received:[],expenses:[]}};
+var DEF={main:{name:"حسابي الرئيسي",goalName:"هدفي المالي",goalValue:0,fixedExp:0,currentBalance:0,
+  sources:[],received:[],expenses:[]}};
 
 var ICONS=['💼','🚗','🏠','👗','💸','💰','📦','🌐','📱','🎯','💎','✈️','🔧','🎓','🏭'];
 var profiles={},current='main',currentUser=null,saveTimer=null;
