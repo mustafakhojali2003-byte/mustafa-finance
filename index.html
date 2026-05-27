@@ -210,6 +210,17 @@ input,select,button{font-family:inherit}
   .gg{grid-template-columns:1fr 1fr}
 }
 </style>
+<script>
+// Emergency timeout - runs immediately, no Firebase needed
+setTimeout(function(){
+  var ls=document.getElementById('loadingScreen');
+  var as=document.getElementById('authScreen');
+  if(ls&&ls.style.display!=='none'){
+    ls.style.display='none';
+    if(as) as.style.display='flex';
+  }
+},3500);
+</script>
 </head>
 <body>
 
@@ -274,11 +285,12 @@ input,select,button{font-family:inherit}
   <div class="main" id="mc"></div>
 </div>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+<script defer src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script defer src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script defer src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+<script defer src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 <script>
+document.addEventListener("DOMContentLoaded",function(){
 // ── FIREBASE INIT ─────────────────────────────────────────────────
 firebase.initializeApp({
   apiKey:"AIzaSyDMaC8r3u8_ZreZao8PaEwhUvPS-4DQFW0",
@@ -353,26 +365,11 @@ var profiles={},current='main',currentUser=null,saveTimer=null;
 
 // ── FIREBASE AUTH ─────────────────────────────────────────────────
 // Timeout fallback — if Firebase takes too long show auth screen
-// Show auth screen if Firebase takes too long
-var initTimeout = setTimeout(function(){
-  document.getElementById('loadingScreen').style.display='none';
-  document.getElementById('authScreen').style.display='flex';
-}, 4000);
-
-// Also show auth screen if page is fully loaded but Firebase hasn't responded
-window.addEventListener('load', function(){
-  setTimeout(function(){
-    var ls = document.getElementById('loadingScreen');
-    if(ls && ls.style.display !== 'none'){
-      ls.style.display='none';
-      document.getElementById('authScreen').style.display='flex';
-    }
-  }, 2000);
-});
+// Auth timeout handled in <head> inline script
 
 applyLang();
 auth.onAuthStateChanged(function(user){
-  clearTimeout(initTimeout);
+  // clear handled by head script;
   if(user){
     currentUser=user;
     loadData(user.uid).then(function(){
