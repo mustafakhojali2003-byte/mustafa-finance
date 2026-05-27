@@ -395,45 +395,33 @@ function loadData(uid){
   return db.collection('users').doc(uid).get().then(function(snap){
     if(snap.exists){
       var d=snap.data();
-      // If this is Mustafa's account keep his data, everyone else gets clean slate
-      if(currentUser && currentUser.email===MUSTAFA_EMAIL){
-        profiles=d.profiles||getMustafaData();
-        current=d.current||'main';
+      // ── ALWAYS load saved data as-is — NEVER wipe or modify ──
+      if(d.profiles && Object.keys(d.profiles).length>0){
+        profiles=d.profiles;
+        current=d.current||Object.keys(d.profiles)[0];
+        // Make sure current key exists
+        if(!profiles[current]) current=Object.keys(profiles)[0];
       } else {
-        // Reset any pre-filled data for other users
-        var saved=d.profiles||{};
-        // Clean each profile - remove any pre-filled Mustafa data
-        Object.keys(saved).forEach(function(k){
-          var p=saved[k];
-          // If looks like Mustafa's default data (salary 1600, lancer car) wipe it
-          var hasMustafaData=false;
-          (p.sources||[]).forEach(function(s){
-            if(s.amount===1600||s.amount===900||(s.name&&s.name.indexOf('لانسر')>-1)) hasMustafaData=true;
-          });
-          if(hasMustafaData){
-            saved[k]={name:p.name||'حسابي الرئيسي',goalName:p.goalName||'هدفي المالي',goalValue:0,fixedExp:0,currentBalance:0,sources:[],received:[],expenses:[]};
-          }
-        });
-        profiles=saved;
-        current=d.current||Object.keys(saved)[0]||'main';
-        // If no profiles exist create empty one
-        if(Object.keys(profiles).length===0){
-          profiles={main:{name:'حسابي الرئيسي',goalName:'هدفي المالي',goalValue:0,fixedExp:0,currentBalance:0,sources:[],received:[],expenses:[]}};
-          current='main';
-        }
+        // Document exists but empty profiles — give correct default
+        profiles=getDefaultData();
+        current='main';
         return saveNow(uid);
       }
     } else {
-      // Brand new user
-      if(currentUser && currentUser.email===MUSTAFA_EMAIL){
-        profiles=getMustafaData();
-      } else {
-        profiles={main:{name:'حسابي الرئيسي',goalName:'هدفي المالي',goalValue:0,fixedExp:0,currentBalance:0,sources:[],received:[],expenses:[]}};
-      }
+      // ── NEW USER: document doesn't exist yet ──
+      profiles=getDefaultData();
       current='main';
       return saveNow(uid);
     }
   });
+}
+
+function getDefaultData(){
+  // Mustafa gets his pre-filled data, everyone else gets clean empty account
+  if(currentUser && currentUser.email===MUSTAFA_EMAIL){
+    return getMustafaData();
+  }
+  return {main:{name:'حسابي الرئيسي',goalName:'هدفي المالي',goalValue:0,fixedExp:0,currentBalance:0,sources:[],received:[],expenses:[]}};
 }
 
 function getMustafaData(){
