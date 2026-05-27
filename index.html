@@ -368,17 +368,28 @@ window.addEventListener('load', function(){
 
 applyLang();
 auth.onAuthStateChanged(function(user){
-  clearTimeout(initTimeout);
   if(user){
     currentUser=user;
+    // Add timeout to loadData in case Firestore hangs
+    var dataTimeout=setTimeout(function(){
+      clearTimeout(initTimeout);
+      profiles=JSON.parse(JSON.stringify(DEF));
+      current='main';
+      showApp(user);
+    },4000);
     loadData(user.uid).then(function(){
+      clearTimeout(dataTimeout);
+      clearTimeout(initTimeout);
       showApp(user);
     }).catch(function(){
+      clearTimeout(dataTimeout);
+      clearTimeout(initTimeout);
       profiles=JSON.parse(JSON.stringify(DEF));
       current='main';
       showApp(user);
     });
   } else {
+    clearTimeout(initTimeout);
     document.getElementById('loadingScreen').style.display='none';
     document.getElementById('authScreen').style.display='flex';
   }
@@ -445,8 +456,14 @@ function doLogout(){auth.signOut();}
 var MUSTAFA_EMAIL='mustafakhojali884@gmail.com';
 
 function loadData(uid){
-  return db.collection('users').doc(uid).get().then(function(snap){
-    if(snap.exists){
+  // Race Firestore against a 5s timeout
+  var firestorePromise=db.collection('users').doc(uid).get();
+  var timeoutPromise=new Promise(function(resolve){
+    setTimeout(function(){ resolve(null); },5000);
+  });
+  return Promise.race([firestorePromise,timeoutPromise]).then(function(snap){
+    if(!snap){ throw new Error('Firestore timeout'); }
+    if(snap && snap.exists){
       var d=snap.data();
       // ── ALWAYS load saved data as-is — NEVER wipe or modify ──
       if(d.profiles && Object.keys(d.profiles).length>0){
