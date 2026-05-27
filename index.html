@@ -174,6 +174,25 @@ input,select,button{font-family:inherit}
 .in{font-family:'JetBrains Mono',monospace;font-size:16px;font-weight:600;line-height:1;margin-bottom:3px}
 .il{font-size:10px;color:var(--muted)}
 
+/* MONTHLY COLLECTION */
+.mcol-summary{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:14px}
+.mcol-stat{background:var(--s2);border-radius:8px;padding:11px;text-align:center}
+.mcol-stat-n{font-family:'JetBrains Mono',monospace;font-size:18px;font-weight:600;line-height:1;margin-bottom:3px}
+.mcol-stat-l{font-size:10px;color:var(--muted)}
+.mcol-form{display:flex;gap:7px;flex-wrap:wrap;align-items:center;background:var(--s2);border-radius:9px;padding:10px;margin-bottom:12px}
+.mcol-list{max-height:260px;overflow-y:auto}
+.mcol-row{display:flex;align-items:center;gap:8px;padding:9px 10px;border-bottom:1px solid var(--border);transition:background .15s}
+.mcol-row:last-child{border-bottom:none}
+.mcol-row:hover{background:rgba(255,255,255,.02)}
+.mcol-left{flex:1}
+.mcol-badge{display:inline-flex;align-items:center;background:rgba(168,85,247,.12);color:var(--purple);border:1px solid rgba(168,85,247,.25);border-radius:12px;padding:3px 10px;font-size:11px;font-weight:600;margin-bottom:3px}
+.mcol-src{font-size:13px;font-weight:500;color:var(--text)}
+.mcol-note{font-size:11px;color:var(--muted);margin-top:2px}
+.mcol-right{text-align:right}
+.mcol-amt{font-family:'JetBrains Mono',monospace;font-size:15px;font-weight:600;color:var(--green)}
+.mcol-pct{font-size:10px;color:var(--muted);margin-top:2px}
+.mcol-date{font-size:10px;color:var(--muted)}
+
 /* EXPORT */
 .exbtn{display:flex;align-items:center;justify-content:center;gap:7px;width:100%;padding:13px;background:linear-gradient(135deg,rgba(34,211,165,.09),rgba(59,130,246,.06));border:1px solid rgba(34,211,165,.2);border-radius:10px;color:var(--accent);font-size:14px;font-weight:600;cursor:pointer;transition:all .2s;margin-top:13px}
 .exbtn:hover{background:linear-gradient(135deg,rgba(34,211,165,.18),rgba(59,130,246,.13));transform:translateY(-1px)}
@@ -275,6 +294,12 @@ var TX={
     tGift:"🎁 هدية",tLoan:"💸 قرض",tOth:"📥 أخرى",
     addBtn:"+ إضافة",clrBtn:"مسح الكل",
     expSec:"المصاريف اليومية",expPh:"عشاء، قهوة...",
+    mthSec:"سجل التحصيل الشهري",mthAdd:"+ تسجيل تحصيل",
+    mthSrcLbl:"المصدر",mthAmtLbl:"المبلغ المحصّل",mthMonLbl:"الشهر",
+    mthNote:"ملاحظة (اختياري)",mthGoalLeft:"المتبقي للهدف",
+    mthTotal:"إجمالي المحصّل",mthClear:"مسح الكل",
+    mthNoItems:"لا توجد تحصيلات مسجلة",
+    months_names:["يناير","فبراير","مارس","أبريل","مايو","يونيو","يوليو","أغسطس","سبتمبر","أكتوبر","نوفمبر","ديسمبر"],
     exbtn:"📊 تصدير إلى Excel",noIt:"لا توجد بيانات",
     langBtn:"EN",logoutBtn:"خروج",newProfPh:"حساب جديد...",
     confDel:"حذف الحساب؟",cantDel:"لا يمكن حذف آخر حساب",confClr:"مسح جميع البيانات؟"},
@@ -293,6 +318,12 @@ var TX={
     tGift:"🎁 Gift",tLoan:"💸 Loan",tOth:"📥 Other",
     addBtn:"+ Add",clrBtn:"Clear All",
     expSec:"Daily Expenses",expPh:"Dinner, coffee...",
+    mthSec:"Monthly Collection Log",mthAdd:"+ Add Collection",
+    mthSrcLbl:"Source",mthAmtLbl:"Amount Collected",mthMonLbl:"Month",
+    mthNote:"Note (optional)",mthGoalLeft:"Remaining to Goal",
+    mthTotal:"Total Collected",mthClear:"Clear All",
+    mthNoItems:"No collections recorded",
+    months_names:["January","February","March","April","May","June","July","August","September","October","November","December"],
     exbtn:"📊 Export to Excel",noIt:"No entries",
     langBtn:"عربي",logoutBtn:"Logout",newProfPh:"New account...",
     confDel:"Delete account?",cantDel:"Cannot delete last account",confClr:"Clear all data?"}
@@ -672,6 +703,10 @@ function render(){
     '<div class="ll">'+expL+'</div>'+
     '<div style="display:flex;justify-content:flex-end;margin-top:8px"><button class="bxs br" onclick="clrExp()">'+t('clrBtn')+'</button></div>'+
   '</div>'+
+  '<div class="card" id="mthCard">'+
+    '<div class="stit"><span class="sbar" style="background:var(--purple)"></span>'+t('mthSec')+'</div>'+
+    buildMonthlyHTML(p,c)+
+  '</div>'+
   '<button class="exbtn" onclick="exportXL()">'+t('exbtn')+'</button>';
 }
 
@@ -720,6 +755,100 @@ function addExp(){
 }
 function delExp(i){profiles[current].expenses.splice(i,1);save();render();}
 function clrExp(){if(confirm(t('confClr'))){profiles[current].expenses=[];save();render();}}
+
+// ── MONTHS ───────────────────────────────────────────────────────
+var MONTH_MAP_AR=["يناير","فبراير","مارس","أبريل","مايو","يونيو","يوليو","أغسطس","سبتمبر","أكتوبر","نوفمبر","ديسمبر"];
+var MONTH_MAP_EN=["January","February","March","April","May","June","July","August","September","October","November","December"];
+function monthName(num){ var arr=lang==='ar'?MONTH_MAP_AR:MONTH_MAP_EN; return (arr[num-1]||num); }
+
+function buildMonthlyHTML(p,c){
+  var cols=p.collections||[];
+  var totalCol=0; cols.forEach(function(x){totalCol+=+x.amount;});
+  var goalLeft=Math.max(0,(+p.goalValue||0)-totalCol);
+  
+  // Month options
+  var now=new Date();
+  var monthOpts='';
+  for(var i=1;i<=12;i++){
+    var sel=(i===now.getMonth()+1)?' selected':'';
+    monthOpts+='<option value="'+i+'"'+sel+'>'+i+' — '+monthName(i)+'</option>';
+  }
+  
+  // Source options from active sources
+  var srcOpts='<option value="">'+t('mthSrcLbl')+'...</option>';
+  (p.sources||[]).forEach(function(s){
+    srcOpts+='<option value="'+es(s.name)+'">'+s.icon+' '+es(s.name)+'</option>';
+  });
+  
+  // List
+  var listHTML=cols.length===0?
+    '<div style="text-align:center;color:var(--muted);padding:13px;font-size:12px">'+t('mthNoItems')+'</div>':
+    cols.map(function(x,i){
+      var pct=p.goalValue>0?Math.min((x.amount/p.goalValue*100),100).toFixed(1):0;
+      return '<div class="mcol-row">'+
+        '<div class="mcol-left">'+
+          '<div class="mcol-badge">'+x.month+' — '+monthName(parseInt(x.month))+' '+x.year+'</div>'+
+          '<div class="mcol-src">'+es(x.source)+'</div>'+
+          (x.note?'<div class="mcol-note">'+es(x.note)+'</div>':'')+
+        '</div>'+
+        '<div class="mcol-right">'+
+          '<div class="mcol-amt">+'+fm(x.amount)+' QAR</div>'+
+          '<div class="mcol-pct">'+pct+'% من الهدف</div>'+
+          '<div class="mcol-date">'+x.date+'</div>'+
+        '</div>'+
+        '<button class="bdel" onclick="delCol('+i+')">✕</button>'+
+      '</div>';
+    }).join('');
+
+  return '<div class="mcol-summary">'+
+    '<div class="mcol-stat"><div class="mcol-stat-n" style="color:var(--green)">'+fm(totalCol)+'</div><div class="mcol-stat-l">'+t('mthTotal')+' QAR</div></div>'+
+    '<div class="mcol-stat"><div class="mcol-stat-n" style="color:var(--blue)">'+fm(+p.currentBalance||0)+'</div><div class="mcol-stat-l">الرصيد الحالي QAR</div></div>'+
+    '<div class="mcol-stat"><div class="mcol-stat-n" style="color:var(--yellow)">'+fm(goalLeft)+'</div><div class="mcol-stat-l">'+t('mthGoalLeft')+' QAR</div></div>'+
+  '</div>'+
+  '<div class="mcol-form">'+
+    '<select class="ltp" id="mSrc" style="flex:2;min-width:120px">'+srcOpts+'</select>'+
+    '<input class="la" id="mAmt" type="number" placeholder="'+t('mthAmtLbl')+'" style="width:110px">'+
+    '<select class="ltp" id="mMon" style="min-width:120px">'+monthOpts+'</select>'+
+    '<input class="li" id="mNote" placeholder="'+t('mthNote')+'" style="flex:2">'+
+    '<button class="badd" onclick="addCol()">'+t('mthAdd')+'</button>'+
+  '</div>'+
+  '<div class="mcol-list">'+listHTML+'</div>'+
+  '<div style="display:flex;justify-content:flex-end;margin-top:8px">'+
+    '<button class="bxs br" onclick="clrCol()">'+t('mthClear')+'</button>'+
+  '</div>';
+}
+
+function addCol(){
+  var src=document.getElementById('mSrc').value;
+  var amt=parseFloat(document.getElementById('mAmt').value);
+  var mon=parseInt(document.getElementById('mMon').value);
+  var note=document.getElementById('mNote').value.trim();
+  if(!src||!amt||amt<=0) return;
+  var now=new Date();
+  if(!profiles[current].collections) profiles[current].collections=[];
+  var entry={source:src,amount:amt,month:mon,year:now.getFullYear(),note:note,date:mon+'/'+now.getFullYear()};
+  profiles[current].collections.push(entry);
+  // Add to current balance automatically
+  profiles[current].currentBalance=(+profiles[current].currentBalance||0)+amt;
+  document.getElementById('mAmt').value='';
+  document.getElementById('mNote').value='';
+  save(); render();
+}
+function delCol(i){
+  var col=profiles[current].collections[i];
+  // Remove from balance too
+  profiles[current].currentBalance=Math.max(0,(+profiles[current].currentBalance||0)-(+col.amount||0));
+  profiles[current].collections.splice(i,1);
+  save(); render();
+}
+function clrCol(){
+  if(!confirm(t('confClr'))) return;
+  var total=0;
+  (profiles[current].collections||[]).forEach(function(x){total+=+x.amount;});
+  profiles[current].currentBalance=Math.max(0,(+profiles[current].currentBalance||0)-total);
+  profiles[current].collections=[];
+  save(); render();
+}
 
 function exportXL(){
   var wb=XLSX.utils.book_new();
