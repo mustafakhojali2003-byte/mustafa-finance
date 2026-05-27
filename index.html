@@ -346,7 +346,7 @@ function t(k){return(TX[lang]||TX.ar)[k]||k;}
 
 // ── DEFAULTS ──────────────────────────────────────────────────────
 var DEF={main:{name:"حسابي الرئيسي",goalName:"هدفي المالي",goalValue:0,fixedExp:0,currentBalance:0,
-  sources:[],received:[],expenses:[]}};
+  sources:[],received:[],expenses:[],collections:[]}};
 
 var ICONS=['💼','🚗','🏠','👗','💸','💰','📦','🌐','📱','🎯','💎','✈️','🔧','🎓','🏭'];
 var profiles={},current='main',currentUser=null,saveTimer=null;
@@ -380,6 +380,7 @@ function showApp(user){
   document.getElementById('loadingScreen').style.display='none';
   document.getElementById('authScreen').style.display='none';
   document.getElementById('appScreen').style.display='block';
+  applyLang();
   var email=user.email||'';
   var name=user.displayName||email.split('@')[0]||'U';
   document.getElementById('uEmail').textContent=email;
@@ -465,7 +466,7 @@ function getDefaultData(){
   if(currentUser && currentUser.email===MUSTAFA_EMAIL){
     return getMustafaData();
   }
-  return {main:{name:'حسابي الرئيسي',goalName:'هدفي المالي',goalValue:0,fixedExp:0,currentBalance:0,sources:[],received:[],expenses:[]}};
+  return {main:{name:'حسابي الرئيسي',goalName:'هدفي المالي',goalValue:0,fixedExp:0,currentBalance:0,sources:[],received:[],expenses:[],collections:[]}};
 }
 
 function getMustafaData(){
@@ -564,7 +565,7 @@ function createProf(){
   if(!n) return;
   var k='p'+Date.now();
   profiles[k]={name:n,goalName:'الهدف المالي',goalValue:100000,fixedExp:400,currentBalance:0,
-    sources:[{name:'المصدر الأول',icon:'💰',active:true,amount:1000}],received:[],expenses:[]};
+    sources:[{name:'المصدر الأول',icon:'💰',active:true,amount:1000}],received:[],expenses:[],collections:[]};
   current=k;
   document.getElementById('newProfIn').value='';
   updateSel();
@@ -607,9 +608,7 @@ function switchTab(tab){
   document.querySelectorAll('.tab-btn').forEach(function(b){
     b.classList.toggle('active', b.id==='tab-'+tab);
   });
-  document.querySelectorAll('.tab-page').forEach(function(p){
-    p.classList.toggle('active', p.id==='page-'+tab);
-  });
+  render();
 }
 function render(){
   var p=profiles[current];
@@ -747,6 +746,12 @@ function render(){
   '</div>'+
   '</div>'+ // end page-balance
   '<button class="exbtn" onclick="exportXL()">'+t('exbtn')+'</button>';
+  // Keep active tab button highlighted after render
+  setTimeout(function(){
+    document.querySelectorAll('.tab-btn').forEach(function(b){
+      b.classList.toggle('active', b.id==='tab-'+currentTab);
+    });
+  },0);
 }
 
 // ── ACTIONS ───────────────────────────────────────────────────────
@@ -914,6 +919,12 @@ function exportXL(){
     rows.push([],[t('balSec')],[t('curBal'),'','',p.currentBalance||0],[t('totRec'),'','',c.totRec],[t('totExp'),'',-c.totExp],[t('netBal'),'','',c.netBal]);
     if((p.received||[]).length>0){rows.push([],[t('recSec')]);p.received.forEach(function(r){rows.push([r.desc,r.type,'',r.amount]);});}
     if((p.expenses||[]).length>0){rows.push([],[t('expSec')]);p.expenses.forEach(function(e){rows.push([e.desc,e.date,'',-e.amount]);});}
+    if((p.collections||[]).length>0){
+      rows.push([],[t('mthSec'),'','',t('mthAmtLbl'),'','الشهر']);
+      p.collections.forEach(function(x){rows.push([x.source,x.month+' — '+monthName(x.month)+' '+x.year,x.note||'',x.amount]);});
+      var totC=0;p.collections.forEach(function(x){totC+=+x.amount;});
+      rows.push([t('mthTotal'),'','',totC]);
+    }
     var ws=XLSX.utils.aoa_to_sheet(rows);
     ws['!cols']=[{wch:32},{wch:12},{wch:6},{wch:16}];
     XLSX.utils.book_append_sheet(wb,ws,p.name.substring(0,31).replace(/[\[\]*?:\/\\]/g,''));
