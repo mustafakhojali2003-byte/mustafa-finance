@@ -717,24 +717,102 @@ function clrExp(){if(!confirm(t('confClr')))return;var tot=0;(profiles[current].
 
 // ── EXCEL ────────────────────────────────────────────────────────
 function exportXL(){
-  var wb=XLSX.utils.book_new();
+  var wb = XLSX.utils.book_new();
+  var now = new Date();
+  var dateStr = now.getDate()+'/'+(now.getMonth()+1)+'/'+now.getFullYear();
+
   Object.keys(profiles).forEach(function(k){
-    var p=profiles[k],c=calc(p);
-    var rows=[['Mustafa Finance — '+p.name],[],
-      ['الهدف',p.goalName,'',t('goalVl'),p.goalValue],
-      [t('mo'),c.months,t('yr'),c.years,'',t('tgYr'),c.projYear],[],
-      [t('incSec'),'','',t('cAmt')]];
-    p.sources.forEach(function(s){rows.push([s.icon+' '+s.name,s.active?'ON':'OFF','',s.active?s.amount:0]);});
-    rows.push([],[t('totInc'),'','',c.gross],[t('fixExp'),'',-p.fixedExp],[t('netLbl'),'','',c.net],['وفر سنوي','','',c.net*12]);
-    rows.push([],[t('balSec')],[t('curBal'),'','',p.currentBalance||0],[t('totRec'),'','',c.totRec],[t('totExp'),'',-c.totExp],[t('netBal'),'','',c.netBal]);
-    if((p.collections||[]).length>0){rows.push([],[t('mthSec')]);p.collections.forEach(function(x){rows.push([x.source,x.month+' — '+mname(x.month)+' '+x.year,x.note||'',x.amount]);});}
-    if((p.received||[]).length>0){rows.push([],[t('recSec')]);p.received.forEach(function(r){rows.push([r.desc,r.type,'',r.amount]);});}
-    if((p.expenses||[]).length>0){rows.push([],[t('expSec')]);p.expenses.forEach(function(e){rows.push([e.desc,e.date,'',-e.amount]);});}
-    var ws=XLSX.utils.aoa_to_sheet(rows);ws['!cols']=[{wch:32},{wch:12},{wch:6},{wch:16}];
-    XLSX.utils.book_append_sheet(wb,ws,p.name.substring(0,31).replace(/[\[\]*?:\/\\]/g,''));
+    var p = profiles[k];
+    var c2 = calc(p);
+    var ws_data = [];
+
+    // ── HEADER ────────────────────────────────────────────────
+    ws_data.push(['💹 Mustafa Finance — '+p.name, '', '', '', '📅 '+dateStr]);
+    ws_data.push(['']);
+
+    // ── GOAL ──────────────────────────────────────────────────
+    ws_data.push(['🎯 الهدف الاستثماري', '', '', '', '']);
+    ws_data.push(['اسم الهدف', p.goalName, '', 'قيمة الهدف', (+p.goalValue||0)+' QAR']);
+    ws_data.push(['المدة المطلوبة', c2.months+' شهراً', '', 'بالسنوات', c2.years+(c2.mrem>0?'.'+c2.mrem:'')+' سنة']);
+    ws_data.push(['سنة التحقق التقديرية', c2.projYear, '', 'صافي الوفر الشهري', c2.net+' QAR']);
+    ws_data.push(['']);
+
+    // ── INCOME ────────────────────────────────────────────────
+    ws_data.push(['💰 مصادر الدخل', '', '', '', '']);
+    ws_data.push(['المصدر', 'الحالة', 'الدخل الشهري (QAR)', 'الدخل السنوي (QAR)', '']);
+    (p.sources||[]).forEach(function(s){
+      ws_data.push([s.icon+' '+s.name, s.active?'✅ مفعّل':'⛔ موقف', s.active?s.amount:0, s.active?s.amount*12:0, '']);
+    });
+    ws_data.push(['', 'الإجمالي الشهري ←', c2.gross+' QAR', c2.gross*12+' QAR (سنوي)', '']);
+    ws_data.push(['', 'المصاريف الثابتة ←', '-'+(p.fixedExp||0)+' QAR', '', '']);
+    ws_data.push(['', 'صافي الوفر ←', c2.net+' QAR', c2.net*12+' QAR (سنوي)', '']);
+    ws_data.push(['']);
+
+    // ── BALANCE ───────────────────────────────────────────────
+    ws_data.push(['💳 ملخص الرصيد', '', '', '', '']);
+    ws_data.push(['البند', 'المبلغ (QAR)', '', '', '']);
+    ws_data.push(['الرصيد الحالي', +p.currentBalance||0, '', '', '']);
+    ws_data.push(['إجمالي الأموال الواردة', c2.totRec, '', '', '']);
+    ws_data.push(['إجمالي المصاريف', '-'+c2.totExp, '', '', '']);
+    ws_data.push(['الصافي الفعلي', c2.netBal, '', '', '']);
+    ws_data.push(['أيام تأخير في الهدف', c2.dDelay+' يوم', '', '', '']);
+    ws_data.push(['']);
+
+    // ── MONTHLY COLLECTIONS ───────────────────────────────────
+    if((p.collections||[]).length > 0){
+      ws_data.push(['📅 سجل التحصيل الشهري', '', '', '', '']);
+      ws_data.push(['الشهر', 'السنة', 'المصدر', 'المبلغ (QAR)', 'ملاحظة']);
+      var totC=0;
+      p.collections.forEach(function(x){
+        totC+=+x.amount;
+        ws_data.push([x.month+' — '+mname(parseInt(x.month)), x.year, x.source, x.amount, x.note||'—']);
+      });
+      ws_data.push(['', '', 'إجمالي التحصيلات ←', totC+' QAR', '']);
+      ws_data.push(['', '', 'المتبقي للهدف ←', Math.max(0,(+p.goalValue||0)-(+p.currentBalance||0))+' QAR', '']);
+      ws_data.push(['']);
+    }
+
+    // ── RECEIVED ──────────────────────────────────────────────
+    if((p.received||[]).length > 0){
+      ws_data.push(['📥 سجل الأموال الواردة', '', '', '', '']);
+      ws_data.push(['التاريخ', 'الوصف', 'النوع', 'المبلغ (QAR)', '']);
+      p.received.forEach(function(r){
+        var tp = r.type==='gift'?'هدية':r.type==='loan'?'قرض':'أخرى';
+        ws_data.push([r.date, r.desc, tp, r.amount, '']);
+      });
+      ws_data.push(['']);
+    }
+
+    // ── EXPENSES ──────────────────────────────────────────────
+    if((p.expenses||[]).length > 0){
+      ws_data.push(['📤 سجل المصاريف اليومية', '', '', '', '']);
+      ws_data.push(['التاريخ', 'الوصف', 'المبلغ (QAR)', '', '']);
+      p.expenses.forEach(function(e){
+        ws_data.push([e.date, e.desc, e.amount, '', '']);
+      });
+      ws_data.push(['', 'الإجمالي ←', c2.totExp+' QAR', '', '']);
+      ws_data.push(['']);
+    }
+
+    // ── BUILD SHEET ───────────────────────────────────────────
+    var ws = XLSX.utils.aoa_to_sheet(ws_data);
+
+    // Column widths
+    ws['!cols'] = [{wch:28},{wch:18},{wch:20},{wch:20},{wch:18}];
+
+    // Style header row
+    var range = XLSX.utils.decode_range(ws['!ref']);
+    // Mark merge for title
+    if(!ws['!merges']) ws['!merges'] = [];
+    ws['!merges'].push({s:{r:0,c:0},e:{r:0,c:3}});
+
+    var sheetName = p.name.substring(0,31).replace(/[\[\]*?:\/\\]/g,'');
+    XLSX.utils.book_append_sheet(wb, ws, sheetName);
   });
-  XLSX.writeFile(wb,'mustafa_finance_'+new Date().toISOString().slice(0,10)+'.xlsx');
+
+  XLSX.writeFile(wb, 'Mustafa_Finance_'+new Date().toISOString().slice(0,10)+'.xlsx');
 }
+
 
 // ── INIT ─────────────────────────────────────────────────────────
 applyLang();
