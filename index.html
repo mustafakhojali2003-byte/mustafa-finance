@@ -582,7 +582,7 @@ function renderIncome(p,c){
 function renderMonthly(p,c){
   var cols=p.collections||[];
   var totC=0; cols.forEach(function(x){totC+=+x.amount;});
-  var left=Math.max(0,(+p.goalValue||0)-(+p.currentBalance||0)-totC);
+  var left=Math.max(0,(+p.goalValue||0)-(+p.currentBalance||0));
   var now=new Date();
   var mOpts=''; for(var i=1;i<=12;i++) mOpts+='<option value="'+i+'"'+(i===now.getMonth()+1?' selected':'')+'>'+i+' — '+mname(i)+'</option>';
   var sOpts='<option value="">'+t('mthSrcLbl')+'...</option>';
