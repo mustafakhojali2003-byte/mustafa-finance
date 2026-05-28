@@ -777,7 +777,7 @@ function exportXL(){
     });
     ws_data.push([cell('إجمالي الدخل',S.totalRow),cell('',S.totalRow),numFmt(c2.gross,S.totalRow),numFmt(c2.gross*12,S.totalRow),cell('',S.totalRow)]);
     addMerge(row,0,1); row++;
-    ws_data.push([cell('المصاريف الثابتة',S.red),cell('',S.red),numFmt(-(p.fixedExp||0),S.red),cell('',S.rowOdd),cell('',S.rowOdd)]);row++;
+    ws_data.push([cell('المصاريف الثابتة',S.red),cell('',S.red),numFmt(-(p.fixedExp||0),S.red),numFmt(-((p.fixedExp||0)*12),S.red),cell('شهري / سنوي',S.colHeader)]);row++;
     ws_data.push([cell('صافي الوفر',S.green),cell('',S.green),numFmt(c2.net,S.green),numFmt(c2.net*12,S.green),cell('سنوياً',S.green)]);row++;
     ws_data.push([empty(),empty(),empty(),empty(),empty()]); row++;
 
