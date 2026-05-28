@@ -353,60 +353,61 @@ var profiles={},current='main',currentUser=null,saveTimer=null;
 
 // ── FIREBASE AUTH ─────────────────────────────────────────────────
 // Timeout fallback — if Firebase takes too long show auth screen
-var initTimeout = setTimeout(function(){
+// ── BULLETPROOF AUTH FLOW ───────────────────────────────────────
+var _ready=false;
+function _showAuth(){
+  if(_ready)return; _ready=true;
   document.getElementById('loadingScreen').style.display='none';
   document.getElementById('authScreen').style.display='flex';
-}, 2500);
-window.addEventListener('load', function(){
-  setTimeout(function(){
-    if(document.getElementById('loadingScreen').style.display !== 'none'){
-      document.getElementById('loadingScreen').style.display='none';
-      document.getElementById('authScreen').style.display='flex';
-    }
-  }, 800);
-});
-
-applyLang();
-auth.onAuthStateChanged(function(user){
-  if(user){
-    currentUser=user;
-    // Add timeout to loadData in case Firestore hangs
-    var dataTimeout=setTimeout(function(){
-      clearTimeout(initTimeout);
-      profiles=JSON.parse(JSON.stringify(DEF));
-      current='main';
-      showApp(user);
-    },4000);
-    loadData(user.uid).then(function(){
-      clearTimeout(dataTimeout);
-      clearTimeout(initTimeout);
-      showApp(user);
-    }).catch(function(){
-      clearTimeout(dataTimeout);
-      clearTimeout(initTimeout);
-      profiles=JSON.parse(JSON.stringify(DEF));
-      current='main';
-      showApp(user);
-    });
+}
+function _startApp(user,snapData){
+  if(_ready)return; _ready=true;
+  currentUser=user;
+  if(snapData&&snapData.profiles&&Object.keys(snapData.profiles).length>0){
+    profiles=snapData.profiles;
+    current=snapData.current||Object.keys(snapData.profiles)[0];
+    if(!profiles[current]) current=Object.keys(snapData.profiles)[0];
   } else {
-    clearTimeout(initTimeout);
-    document.getElementById('loadingScreen').style.display='none';
-    document.getElementById('authScreen').style.display='flex';
+    profiles=getDefaultData(); current='main'; saveNow(user.uid);
   }
-});
-
-function showApp(user){
   document.getElementById('loadingScreen').style.display='none';
   document.getElementById('authScreen').style.display='none';
   document.getElementById('appScreen').style.display='block';
   applyLang();
-  var email=user.email||'';
-  var name=user.displayName||email.split('@')[0]||'U';
-  document.getElementById('uEmail').textContent=email;
-  document.getElementById('uAv').textContent=name.charAt(0).toUpperCase();
-  updateSel();
-  render();
+  var em=user.email||''; var nm=user.displayName||em.split('@')[0]||'U';
+  document.getElementById('uEmail').textContent=em;
+  document.getElementById('uAv').textContent=nm.charAt(0).toUpperCase();
+  updateSel(); render();
 }
+
+// Hard fallback: show auth after 3s no matter what
+var _hardTimer=setTimeout(function(){ _showAuth(); },3000);
+
+applyLang();
+
+auth.onAuthStateChanged(function(user){
+  if(!user){ clearTimeout(_hardTimer); _showAuth(); return; }
+  currentUser=user;
+  var _done=false;
+  var _dt=setTimeout(function(){
+    if(_done)return; _done=true;
+    clearTimeout(_hardTimer); _startApp(user,null);
+  },4000);
+  db.collection('users').doc(user.uid).get()
+    .then(function(snap){
+      if(_done)return; _done=true;
+      clearTimeout(_dt); clearTimeout(_hardTimer);
+      _startApp(user, snap.exists?snap.data():null);
+    })
+    .catch(function(){
+      if(_done)return; _done=true;
+      clearTimeout(_dt); clearTimeout(_hardTimer);
+      _startApp(user,null);
+    });
+});
+
+
+
 
 // ── AUTH ACTIONS ──────────────────────────────────────────────────
 var authMode='login';
@@ -450,7 +451,7 @@ function doAuth(){
     showErr(msgs[e.code]||e.message);
   });
 }
-function doLogout(){auth.signOut();}
+function doLogout(){_ready=false;_appReady=false;document.getElementById('appScreen').style.display='none';auth.signOut();}
 
 // ── FIRESTORE ─────────────────────────────────────────────────────
 var MUSTAFA_EMAIL='mustafakhojali884@gmail.com';
