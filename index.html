@@ -237,7 +237,7 @@ body{font-family:'IBM Plex Sans Arabic','IBM Plex Sans',sans-serif;background:va
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js"></script>
 <script>
 // ── CONFIG ───────────────────────────────────────────────────────
 firebase.initializeApp({
@@ -721,93 +721,134 @@ function exportXL(){
   var now = new Date();
   var dateStr = now.getDate()+'/'+(now.getMonth()+1)+'/'+now.getFullYear();
 
+  // ── STYLE HELPERS ──────────────────────────────────────────
+  var S = {
+    title: {font:{name:'Calibri',sz:16,bold:true,color:{rgb:'FFFFFF'}},fill:{fgColor:{rgb:'0F2040'}},alignment:{horizontal:'center',vertical:'center'},border:{bottom:{style:'medium',color:{rgb:'22D3A5'}}}},
+    subtitle: {font:{name:'Calibri',sz:10,color:{rgb:'94A3B8'}},fill:{fgColor:{rgb:'0F2040'}},alignment:{horizontal:'center',vertical:'center'}},
+    secHeader: {font:{name:'Calibri',sz:11,bold:true,color:{rgb:'FFFFFF'}},fill:{fgColor:{rgb:'1A3C5C'}},alignment:{horizontal:'right',vertical:'center'},border:{bottom:{style:'medium',color:{rgb:'22D3A5'}}}},
+    colHeader: {font:{name:'Calibri',sz:10,bold:true,color:{rgb:'F1F5F9'}},fill:{fgColor:{rgb:'1C2D45'}},alignment:{horizontal:'center',vertical:'center'},border:{bottom:{style:'thin',color:{rgb:'3B82F6'}},top:{style:'thin',color:{rgb:'3B82F6'}},left:{style:'thin',color:{rgb:'1C2D45'}},right:{style:'thin',color:{rgb:'1C2D45'}}}},
+    rowOdd:  {font:{name:'Calibri',sz:10,color:{rgb:'1E293B'}},fill:{fgColor:{rgb:'F8FAFC'}},alignment:{horizontal:'right',vertical:'center'},border:{bottom:{style:'thin',color:{rgb:'E2E8F0'}},top:{style:'thin',color:{rgb:'E2E8F0'}},left:{style:'thin',color:{rgb:'E2E8F0'}},right:{style:'thin',color:{rgb:'E2E8F0'}}}},
+    rowEven: {font:{name:'Calibri',sz:10,color:{rgb:'1E293B'}},fill:{fgColor:{rgb:'EEF2F7'}},alignment:{horizontal:'right',vertical:'center'},border:{bottom:{style:'thin',color:{rgb:'E2E8F0'}},top:{style:'thin',color:{rgb:'E2E8F0'}},left:{style:'thin',color:{rgb:'E2E8F0'}},right:{style:'thin',color:{rgb:'E2E8F0'}}}},
+    label:   {font:{name:'Calibri',sz:10,bold:true,color:{rgb:'1A3C5C'}},fill:{fgColor:{rgb:'DBEAFE'}},alignment:{horizontal:'right',vertical:'center'},border:{bottom:{style:'thin',color:{rgb:'BFDBFE'}},top:{style:'thin',color:{rgb:'BFDBFE'}},left:{style:'thin',color:{rgb:'BFDBFE'}},right:{style:'thin',color:{rgb:'BFDBFE'}}}},
+    value:   {font:{name:'Calibri',sz:10,bold:true,color:{rgb:'0F2040'}},fill:{fgColor:{rgb:'F0FDF4'}},alignment:{horizontal:'center',vertical:'center'},border:{bottom:{style:'thin',color:{rgb:'86EFAC'}},top:{style:'thin',color:{rgb:'86EFAC'}},left:{style:'thin',color:{rgb:'86EFAC'}},right:{style:'thin',color:{rgb:'86EFAC'}}}},
+    totalRow:{font:{name:'Calibri',sz:10,bold:true,color:{rgb:'FFFFFF'}},fill:{fgColor:{rgb:'22D3A5'}},alignment:{horizontal:'center',vertical:'center'},border:{bottom:{style:'medium',color:{rgb:'16A37A'}},top:{style:'medium',color:{rgb:'16A37A'}}}},
+    green:   {font:{name:'Calibri',sz:10,bold:true,color:{rgb:'065F46'}},fill:{fgColor:{rgb:'D1FAE5'}},alignment:{horizontal:'center',vertical:'center'},border:{bottom:{style:'thin',color:{rgb:'6EE7B7'}},top:{style:'thin',color:{rgb:'6EE7B7'}},left:{style:'thin',color:{rgb:'6EE7B7'}},right:{style:'thin',color:{rgb:'6EE7B7'}}}},
+    red:     {font:{name:'Calibri',sz:10,bold:true,color:{rgb:'7F1D1D'}},fill:{fgColor:{rgb:'FEE2E2'}},alignment:{horizontal:'center',vertical:'center'},border:{bottom:{style:'thin',color:{rgb:'FECACA'}},top:{style:'thin',color:{rgb:'FECACA'}},left:{style:'thin',color:{rgb:'FECACA'}},right:{style:'thin',color:{rgb:'FECACA'}}}},
+    yellow:  {font:{name:'Calibri',sz:10,bold:true,color:{rgb:'78350F'}},fill:{fgColor:{rgb:'FEF3C7'}},alignment:{horizontal:'center',vertical:'center'},border:{bottom:{style:'thin',color:{rgb:'FDE68A'}},top:{style:'thin',color:{rgb:'FDE68A'}},left:{style:'thin',color:{rgb:'FDE68A'}},right:{style:'thin',color:{rgb:'FDE68A'}}}},
+    empty:   {fill:{fgColor:{rgb:'0F2040'}}}
+  };
+
+  function cell(v,s){return {v:v,s:s};}
+  function numFmt(v,s){return {v:v,t:'n',s:s,z:'#,##0'};}
+  function empty(){return cell('',S.empty);}
+
   Object.keys(profiles).forEach(function(k){
     var p = profiles[k];
     var c2 = calc(p);
     var ws_data = [];
+    var merges = [];
+    var row = 0;
 
-    // ── HEADER ────────────────────────────────────────────────
-    ws_data.push(['💹 Mustafa Finance — '+p.name, '', '', '', '📅 '+dateStr]);
-    ws_data.push(['']);
+    function addMerge(r,c1,c2e){merges.push({s:{r:r,c:c1},e:{r:r,c:c2e}});}
 
-    // ── GOAL ──────────────────────────────────────────────────
-    ws_data.push(['🎯 الهدف الاستثماري', '', '', '', '']);
-    ws_data.push(['اسم الهدف', p.goalName, '', 'قيمة الهدف', (+p.goalValue||0)+' QAR']);
-    ws_data.push(['المدة المطلوبة', c2.months+' شهراً', '', 'بالسنوات', c2.years+(c2.mrem>0?'.'+c2.mrem:'')+' سنة']);
-    ws_data.push(['سنة التحقق التقديرية', c2.projYear, '', 'صافي الوفر الشهري', c2.net+' QAR']);
-    ws_data.push(['']);
+    // ── TITLE ────────────────────────────────────────────────
+    ws_data.push([cell('💹 MUSTAFA FINANCE',S.title),cell('',S.title),cell('',S.title),cell('',S.title),cell('التاريخ: '+dateStr,S.subtitle)]);
+    addMerge(row,0,3); row++;
+    ws_data.push([cell(p.name,S.subtitle),cell('',S.empty),cell('',S.empty),cell('',S.empty),empty()]);
+    addMerge(row,0,3); row++;
+    ws_data.push([empty(),empty(),empty(),empty(),empty()]); row++;
 
-    // ── INCOME ────────────────────────────────────────────────
-    ws_data.push(['💰 مصادر الدخل', '', '', '', '']);
-    ws_data.push(['المصدر', 'الحالة', 'الدخل الشهري (QAR)', 'الدخل السنوي (QAR)', '']);
-    (p.sources||[]).forEach(function(s){
-      ws_data.push([s.icon+' '+s.name, s.active?'✅ مفعّل':'⛔ موقف', s.active?s.amount:0, s.active?s.amount*12:0, '']);
+    // ── GOAL SECTION ─────────────────────────────────────────
+    ws_data.push([cell('🎯  الهدف الاستثماري',S.secHeader),cell('',S.secHeader),cell('',S.secHeader),cell('',S.secHeader),cell('',S.secHeader)]);
+    addMerge(row,0,4); row++;
+    ws_data.push([cell('اسم الهدف',S.label),cell(p.goalName,S.value),cell('',S.rowOdd),cell('قيمة الهدف',S.label),numFmt(+p.goalValue||0,S.value)]);row++;
+    ws_data.push([cell('المدة المطلوبة',S.label),cell(c2.months+' شهراً',S.value),cell('',S.rowOdd),cell('بالسنوات',S.label),cell(c2.years+(c2.mrem>0?'.'+c2.mrem:'')+' سنة',S.value)]);row++;
+    ws_data.push([cell('سنة التحقق',S.label),cell(c2.projYear,c2.years<8?S.green:c2.years<15?S.yellow:S.red),cell('',S.rowOdd),cell('صافي الوفر الشهري',S.label),numFmt(c2.net,c2.net>0?S.green:S.red)]);row++;
+    ws_data.push([empty(),empty(),empty(),empty(),empty()]); row++;
+
+    // ── INCOME SECTION ────────────────────────────────────────
+    ws_data.push([cell('💰  مصادر الدخل',S.secHeader),cell('',S.secHeader),cell('',S.secHeader),cell('',S.secHeader),cell('',S.secHeader)]);
+    addMerge(row,0,4); row++;
+    ws_data.push([cell('المصدر',S.colHeader),cell('الحالة',S.colHeader),cell('الدخل الشهري (QAR)',S.colHeader),cell('الدخل السنوي (QAR)',S.colHeader),cell('%',S.colHeader)]);row++;
+    (p.sources||[]).forEach(function(s,i){
+      var st = i%2===0?S.rowOdd:S.rowEven;
+      var pct = c2.gross>0&&s.active?((s.amount/c2.gross)*100).toFixed(1)+'%':'—';
+      ws_data.push([cell(s.icon+' '+s.name,st),cell(s.active?'✅ مفعّل':'⛔ موقف',s.active?S.green:S.red),numFmt(s.active?s.amount:0,st),numFmt(s.active?s.amount*12:0,st),cell(pct,st)]);row++;
     });
-    ws_data.push(['', 'الإجمالي الشهري ←', c2.gross+' QAR', c2.gross*12+' QAR (سنوي)', '']);
-    ws_data.push(['', 'المصاريف الثابتة ←', '-'+(p.fixedExp||0)+' QAR', '', '']);
-    ws_data.push(['', 'صافي الوفر ←', c2.net+' QAR', c2.net*12+' QAR (سنوي)', '']);
-    ws_data.push(['']);
+    ws_data.push([cell('إجمالي الدخل',S.totalRow),cell('',S.totalRow),numFmt(c2.gross,S.totalRow),numFmt(c2.gross*12,S.totalRow),cell('',S.totalRow)]);
+    addMerge(row,0,1); row++;
+    ws_data.push([cell('المصاريف الثابتة',S.red),cell('',S.red),numFmt(-(p.fixedExp||0),S.red),cell('',S.rowOdd),cell('',S.rowOdd)]);row++;
+    ws_data.push([cell('صافي الوفر',S.green),cell('',S.green),numFmt(c2.net,S.green),numFmt(c2.net*12,S.green),cell('سنوياً',S.green)]);row++;
+    ws_data.push([empty(),empty(),empty(),empty(),empty()]); row++;
 
-    // ── BALANCE ───────────────────────────────────────────────
-    ws_data.push(['💳 ملخص الرصيد', '', '', '', '']);
-    ws_data.push(['البند', 'المبلغ (QAR)', '', '', '']);
-    ws_data.push(['الرصيد الحالي', +p.currentBalance||0, '', '', '']);
-    ws_data.push(['إجمالي الأموال الواردة', c2.totRec, '', '', '']);
-    ws_data.push(['إجمالي المصاريف', '-'+c2.totExp, '', '', '']);
-    ws_data.push(['الصافي الفعلي', c2.netBal, '', '', '']);
-    ws_data.push(['أيام تأخير في الهدف', c2.dDelay+' يوم', '', '', '']);
-    ws_data.push(['']);
+    // ── BALANCE SECTION ───────────────────────────────────────
+    ws_data.push([cell('💳  ملخص الرصيد',S.secHeader),cell('',S.secHeader),cell('',S.secHeader),cell('',S.secHeader),cell('',S.secHeader)]);
+    addMerge(row,0,4); row++;
+    var balData = [
+      ['الرصيد الحالي',+p.currentBalance||0,S.green],
+      ['إجمالي الأموال الواردة',c2.totRec,S.green],
+      ['إجمالي المصاريف',-c2.totExp,S.red],
+      ['الصافي الفعلي',c2.netBal,c2.netBal>=0?S.green:S.red],
+      ['أيام التأخير في الهدف',c2.dDelay,c2.dDelay>0?S.yellow:S.green],
+      ['المتبقي للهدف',Math.max(0,(+p.goalValue||0)-(+p.currentBalance||0)),S.yellow]
+    ];
+    balData.forEach(function(b,i){
+      ws_data.push([cell(b[0],S.label),numFmt(b[1],b[2]),cell('QAR',S.colHeader),cell('',S.rowOdd),cell('',S.rowOdd)]);row++;
+    });
+    ws_data.push([empty(),empty(),empty(),empty(),empty()]); row++;
 
     // ── MONTHLY COLLECTIONS ───────────────────────────────────
-    if((p.collections||[]).length > 0){
-      ws_data.push(['📅 سجل التحصيل الشهري', '', '', '', '']);
-      ws_data.push(['الشهر', 'السنة', 'المصدر', 'المبلغ (QAR)', 'ملاحظة']);
+    if((p.collections||[]).length>0){
+      ws_data.push([cell('📅  سجل التحصيل الشهري',S.secHeader),cell('',S.secHeader),cell('',S.secHeader),cell('',S.secHeader),cell('',S.secHeader)]);
+      addMerge(row,0,4); row++;
+      ws_data.push([cell('الشهر',S.colHeader),cell('السنة',S.colHeader),cell('المصدر',S.colHeader),cell('المبلغ (QAR)',S.colHeader),cell('ملاحظة',S.colHeader)]);row++;
       var totC=0;
-      p.collections.forEach(function(x){
+      p.collections.forEach(function(x,i){
         totC+=+x.amount;
-        ws_data.push([x.month+' — '+mname(parseInt(x.month)), x.year, x.source, x.amount, x.note||'—']);
+        var st=i%2===0?S.rowOdd:S.rowEven;
+        ws_data.push([cell(x.month+' — '+mname(parseInt(x.month)),st),cell(x.year,st),cell(x.source,st),numFmt(x.amount,S.green),cell(x.note||'—',st)]);row++;
       });
-      ws_data.push(['', '', 'إجمالي التحصيلات ←', totC+' QAR', '']);
-      ws_data.push(['', '', 'المتبقي للهدف ←', Math.max(0,(+p.goalValue||0)-(+p.currentBalance||0))+' QAR', '']);
-      ws_data.push(['']);
+      ws_data.push([cell('إجمالي التحصيلات',S.totalRow),cell('',S.totalRow),cell('',S.totalRow),numFmt(totC,S.totalRow),cell('',S.totalRow)]);
+      addMerge(row,0,2); row++;
+      ws_data.push([empty(),empty(),empty(),empty(),empty()]); row++;
     }
 
     // ── RECEIVED ──────────────────────────────────────────────
-    if((p.received||[]).length > 0){
-      ws_data.push(['📥 سجل الأموال الواردة', '', '', '', '']);
-      ws_data.push(['التاريخ', 'الوصف', 'النوع', 'المبلغ (QAR)', '']);
-      p.received.forEach(function(r){
-        var tp = r.type==='gift'?'هدية':r.type==='loan'?'قرض':'أخرى';
-        ws_data.push([r.date, r.desc, tp, r.amount, '']);
+    if((p.received||[]).length>0){
+      ws_data.push([cell('📥  سجل الأموال الواردة',S.secHeader),cell('',S.secHeader),cell('',S.secHeader),cell('',S.secHeader),cell('',S.secHeader)]);
+      addMerge(row,0,4); row++;
+      ws_data.push([cell('التاريخ',S.colHeader),cell('الوصف',S.colHeader),cell('النوع',S.colHeader),cell('المبلغ (QAR)',S.colHeader),cell('',S.colHeader)]);row++;
+      p.received.forEach(function(r,i){
+        var tp=r.type==='gift'?'🎁 هدية':r.type==='loan'?'💸 قرض':'📥 أخرى';
+        var st=i%2===0?S.rowOdd:S.rowEven;
+        ws_data.push([cell(r.date,st),cell(r.desc,st),cell(tp,st),numFmt(r.amount,S.green),cell('',st)]);row++;
       });
-      ws_data.push(['']);
+      ws_data.push([empty(),empty(),empty(),empty(),empty()]); row++;
     }
 
     // ── EXPENSES ──────────────────────────────────────────────
-    if((p.expenses||[]).length > 0){
-      ws_data.push(['📤 سجل المصاريف اليومية', '', '', '', '']);
-      ws_data.push(['التاريخ', 'الوصف', 'المبلغ (QAR)', '', '']);
-      p.expenses.forEach(function(e){
-        ws_data.push([e.date, e.desc, e.amount, '', '']);
+    if((p.expenses||[]).length>0){
+      ws_data.push([cell('📤  سجل المصاريف اليومية',S.secHeader),cell('',S.secHeader),cell('',S.secHeader),cell('',S.secHeader),cell('',S.secHeader)]);
+      addMerge(row,0,4); row++;
+      ws_data.push([cell('التاريخ',S.colHeader),cell('الوصف',S.colHeader),cell('المبلغ (QAR)',S.colHeader),cell('',S.colHeader),cell('',S.colHeader)]);row++;
+      p.expenses.forEach(function(e,i){
+        var st=i%2===0?S.rowOdd:S.rowEven;
+        ws_data.push([cell(e.date,st),cell(e.desc,st),numFmt(e.amount,S.red),cell('',st),cell('',st)]);row++;
       });
-      ws_data.push(['', 'الإجمالي ←', c2.totExp+' QAR', '', '']);
-      ws_data.push(['']);
+      ws_data.push([cell('الإجمالي',S.totalRow),cell('',S.totalRow),numFmt(c2.totExp,S.totalRow),cell('',S.totalRow),cell('',S.totalRow)]);
+      addMerge(row,0,1); row++;
+      ws_data.push([empty(),empty(),empty(),empty(),empty()]); row++;
     }
 
-    // ── BUILD SHEET ───────────────────────────────────────────
+    // ── BUILD ──────────────────────────────────────────────────
     var ws = XLSX.utils.aoa_to_sheet(ws_data);
+    ws['!cols'] = [{wch:28},{wch:20},{wch:20},{wch:20},{wch:14}];
+    ws['!rows'] = [{hpt:32},{hpt:20}];
+    ws['!merges'] = merges;
+    ws['!dir'] = 'rtl';
 
-    // Column widths
-    ws['!cols'] = [{wch:28},{wch:18},{wch:20},{wch:20},{wch:18}];
-
-    // Style header row
-    var range = XLSX.utils.decode_range(ws['!ref']);
-    // Mark merge for title
-    if(!ws['!merges']) ws['!merges'] = [];
-    ws['!merges'].push({s:{r:0,c:0},e:{r:0,c:3}});
-
-    var sheetName = p.name.substring(0,31).replace(/[\[\]*?:\/\\]/g,'');
-    XLSX.utils.book_append_sheet(wb, ws, sheetName);
+    var sn = p.name.substring(0,31).replace(/[\[\]*?:\/\\]/g,'');
+    XLSX.utils.book_append_sheet(wb, ws, sn);
   });
 
   XLSX.writeFile(wb, 'Mustafa_Finance_'+new Date().toISOString().slice(0,10)+'.xlsx');
