@@ -4,10 +4,6 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Mustafa Finance</title>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
@@ -216,10 +212,22 @@ input,select,button{font-family:inherit}
 </style>
 </head>
 <body>
+<script>
+// Runs immediately - no Firebase needed
+// Show auth screen after 1 second if Firebase hasn't loaded yet
+setTimeout(function(){
+  var ls=document.getElementById('loadingScreen');
+  var as=document.getElementById('authScreen');
+  if(ls&&ls.style.display!=='none'&&as&&as.style.display==='none'){
+    ls.style.display='none';
+    as.style.display='flex';
+  }
+},1000);
+</script>
 
 <div id="loadingScreen">
   <div class="spinner"></div>
-  <span style="font-size:13px;color:var(--muted2)">جاري التحقق من الحساب...</span>
+  <span style="font-size:13px;color:var(--muted2)" id="loadMsg">جاري التحقق من الحساب...</span>
 </div>
 
 <div id="authScreen">
@@ -278,6 +286,11 @@ input,select,button{font-family:inherit}
   <div class="main" id="mc"></div>
 </div>
 
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 <script>
 // ── FIREBASE INIT ─────────────────────────────────────────────────
 firebase.initializeApp({
@@ -380,8 +393,8 @@ function _startApp(user,snapData){
   updateSel(); render();
 }
 
-// Hard fallback: show auth after 3s no matter what
-var _hardTimer=setTimeout(function(){ _showAuth(); },3000);
+// Hard timer replaced by inline body script (runs before Firebase loads)
+var _hardTimer=null;
 
 applyLang();
 
