@@ -708,11 +708,12 @@ function addExp(){
   var d=document.getElementById('eDesc').value.trim()||'مصروف';
   var a=parseFloat(document.getElementById('eAmt').value); if(!a||a<=0)return;
   profiles[current].expenses.push({desc:d,amount:a,date:td()});
+  profiles[current].currentBalance=Math.max(0,(+profiles[current].currentBalance||0)-a);
   document.getElementById('eDesc').value='';document.getElementById('eAmt').value='';
   save();renderTab(3);
 }
-function delExp(i){profiles[current].expenses.splice(i,1);save();renderTab(3);}
-function clrExp(){if(confirm(t('confClr'))){profiles[current].expenses=[];save();renderTab(3);}}
+function delExp(i){var ex=profiles[current].expenses[i];profiles[current].currentBalance=(+profiles[current].currentBalance||0)+(+ex.amount||0);profiles[current].expenses.splice(i,1);save();renderTab(3);}
+function clrExp(){if(!confirm(t('confClr')))return;var tot=0;(profiles[current].expenses||[]).forEach(function(e){tot+=+e.amount;});profiles[current].currentBalance=(+profiles[current].currentBalance||0)+tot;profiles[current].expenses=[];save();renderTab(3);}
 
 // ── EXCEL ────────────────────────────────────────────────────────
 function exportXL(){
