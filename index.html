@@ -223,12 +223,14 @@ body{font-family:'IBM Plex Sans Arabic','IBM Plex Sans',sans-serif;background:va
     <button class="tbtn" id="t1" onclick="goTab(1)">مصادر الدخل</button>
     <button class="tbtn" id="t2" onclick="goTab(2)">التحصيل الشهري</button>
     <button class="tbtn" id="t3" onclick="goTab(3)">الرصيد والمصاريف</button>
+    <button class="tbtn" id="t4" onclick="goTab(4)" style="display:none;color:var(--yw)">👥 المستخدمون</button>
   </div>
   <div class="main">
     <div class="tpage on" id="pg0"></div>
     <div class="tpage" id="pg1"></div>
     <div class="tpage" id="pg2"></div>
     <div class="tpage" id="pg3"></div>
+    <div class="tpage" id="pg4"></div>
     <button class="exbtn" onclick="exportXL()">📊 تصدير البيانات إلى Excel</button>
   </div>
 </div>
@@ -423,6 +425,15 @@ function startApp(user){
   var em=user.email||''; var nm=user.displayName||em.split('@')[0]||'U';
   document.getElementById('uEmail').textContent=em;
   document.getElementById('uAv').textContent=nm.charAt(0).toUpperCase();
+  // Register user in shared registry
+  var uid=user.uid;
+  db.collection('registry').doc(uid).set({
+    email:em, name:nm, uid:uid,
+    lastSeen:Date.now(), joined:firebase.firestore.FieldValue.serverTimestamp()
+  },{merge:true});
+  // Show admin tab only for Mustafa
+  var adminTab=document.getElementById('t4');
+  if(adminTab) adminTab.style.display=em===MUSTAFA?'block':'none';
   applyLang(); updateSel(); render();
 }
 
@@ -460,9 +471,11 @@ function delProf(){
 var curTab=0;
 function goTab(n){
   curTab=n;
-  for(var i=0;i<4;i++){
-    document.getElementById('t'+i).className='tbtn'+(i===n?' on':'');
-    document.getElementById('pg'+i).className='tpage'+(i===n?' on':'');
+  for(var i=0;i<5;i++){
+    var tb=document.getElementById('t'+i);
+    var pg=document.getElementById('pg'+i);
+    if(tb) tb.className='tbtn'+(i===n?' on':'');
+    if(pg) pg.className='tpage'+(i===n?' on':'');
   }
   renderTab(n);
 }
@@ -501,6 +514,7 @@ function renderTab(n){
   if(n===1) renderIncome(p,c);
   if(n===2) renderMonthly(p,c);
   if(n===3) renderBalance(p,c);
+  if(n===4) renderAdmin();
 }
 
 function renderOverview(p,c){
@@ -714,6 +728,45 @@ function addExp(){
 }
 function delExp(i){var ex=profiles[current].expenses[i];profiles[current].currentBalance=(+profiles[current].currentBalance||0)+(+ex.amount||0);profiles[current].expenses.splice(i,1);save();renderTab(3);}
 function clrExp(){if(!confirm(t('confClr')))return;var tot=0;(profiles[current].expenses||[]).forEach(function(e){tot+=+e.amount;});profiles[current].currentBalance=(+profiles[current].currentBalance||0)+tot;profiles[current].expenses=[];save();renderTab(3);}
+
+// ── ADMIN ────────────────────────────────────────────────────────
+function renderAdmin(){
+  var pg=document.getElementById('pg4'); if(!pg)return;
+  pg.innerHTML='<div class="card"><div class="sh"><span class="sb" style="background:var(--yw)"></span>جاري تحميل المستخدمين...</div></div>';
+  db.collection('registry').orderBy('lastSeen','desc').get().then(function(snap){
+    var users=[];
+    snap.forEach(function(doc){users.push(doc.data());});
+    var rows=users.map(function(u,i){
+      var d=u.lastSeen?new Date(u.lastSeen):null;
+      var dateStr=d?(d.getDate()+'/'+(d.getMonth()+1)+'/'+d.getFullYear()+' '+d.getHours()+':'+String(d.getMinutes()).padStart(2,'0')):'—';
+      return '<tr>'+
+        '<td style="padding:9px 10px;border-bottom:1px solid var(--br);font-size:13px"><div style="display:flex;align-items:center;gap:8px">'+
+          '<div style="width:30px;height:30px;border-radius:50%;background:linear-gradient(135deg,var(--ac),var(--bl));display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:#000;flex-shrink:0">'+(u.name||'?').charAt(0).toUpperCase()+'</div>'+
+          '<div><div style="font-weight:500">'+es(u.name||'—')+'</div><div style="font-size:11px;color:var(--mu)">'+es(u.email||'')+'</div></div></div></td>'+
+        '<td style="padding:9px 10px;border-bottom:1px solid var(--br);font-size:12px;color:var(--m2)">'+dateStr+'</td>'+
+        '<td style="padding:9px 10px;border-bottom:1px solid var(--br)"><span style="font-size:11px;padding:3px 9px;border-radius:10px;background:rgba(34,211,165,.12);color:var(--ac);font-weight:600">نشط</span></td>'+
+      '</tr>';
+    }).join('');
+    pg.innerHTML=
+      '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">'+
+        '<div style="font-size:22px;font-weight:700;color:var(--tx)">'+users.length+'</div>'+
+        '<div style="font-size:12px;color:var(--m2)">إجمالي المستخدمين المسجلين</div>'+
+        '<button class="xs xg" onclick="renderAdmin()" style="font-size:12px">🔄 تحديث</button>'+
+      '</div>'+
+      '<div class="card" style="padding:0;overflow:hidden">'+
+        '<table style="width:100%;border-collapse:collapse">'+
+          '<thead><tr>'+
+            '<th style="padding:10px 12px;text-align:right;font-size:11px;font-weight:600;color:var(--mu);background:var(--c2);border-bottom:1px solid var(--br)">المستخدم</th>'+
+            '<th style="padding:10px 12px;text-align:right;font-size:11px;font-weight:600;color:var(--mu);background:var(--c2);border-bottom:1px solid var(--br)">آخر ظهور</th>'+
+            '<th style="padding:10px 12px;text-align:right;font-size:11px;font-weight:600;color:var(--mu);background:var(--c2);border-bottom:1px solid var(--br)">الحالة</th>'+
+          '</tr></thead>'+
+          '<tbody>'+rows+'</tbody>'+
+        '</table>'+
+      '</div>';
+  }).catch(function(e){
+    pg.innerHTML='<div class="card"><div style="color:var(--rd);font-size:13px">خطأ في تحميل البيانات: '+e.message+'</div></div>';
+  });
+}
 
 // ── EXCEL ────────────────────────────────────────────────────────
 function exportXL(){
