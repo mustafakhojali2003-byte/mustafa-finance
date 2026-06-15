@@ -491,11 +491,11 @@ function calc(p){
   var totRec=0;(p.received||[]).forEach(function(r){totRec+=+r.amount;});
   var totExp=0;(p.expenses||[]).forEach(function(e){totExp+=+e.amount;});
   var totCol=0;(p.collections||[]).forEach(function(c){totCol+=+c.amount;});
-  var netBal=(+p.currentBalance||0)+totRec-totExp;
+  var netBal=(+p.currentBalance||0)+totRec;
   var dDelay=net>0?Math.round(totExp/(net/30)):0;
   var pct=goal>0?Math.min((net*12/goal)*100,100):0;
   var srcPct=p.sources.length>0?(active/p.sources.length*100):0;
-  var projYear=net>0?(new Date().getFullYear()+Math.ceil(months/12)):'—';
+  var projYear=net>0?(function(){var dt=new Date();dt.setMonth(dt.getMonth()+months);return dt.getFullYear();})():'—';
   return{gross,net,months,years,mrem,active,totRec,totExp,totCol,netBal,dDelay,pct,srcPct,projYear};
 }
 
